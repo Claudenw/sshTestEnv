@@ -4,7 +4,7 @@
 
 
 	<modelVersion>4.0.0</modelVersion>
-	<artifactId>testSSH</artifactId>
+	<artifactId>sshTestEnv</artifactId>
 	<groupId>org.xenei</groupId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>SSH Testing Server</name>
@@ -95,7 +95,17 @@
 		    <artifactId>commons-cli</artifactId>
 		    <version>1.4</version>
 		</dependency>
-
+ 		<dependency>
+        	<groupId>commons-beanutils</groupId>
+        	<artifactId>commons-beanutils</artifactId>
+        	<version>1.9.3</version>
+    	</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.12</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 	<properties>
 		<maven.compiler.source>1.8</maven.compiler.source>

@@ -3,6 +3,7 @@ package org.xenei.test.testSSH;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.security.Security;
 
@@ -10,6 +11,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.configuration2.Configuration;
@@ -17,20 +19,19 @@ import org.apache.commons.configuration2.builder.fluent.Configurations;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.sshd.server.SshServer;
 import org.apache.sshd.server.auth.password.PasswordAuthenticator;
+import org.apache.sshd.server.auth.password.PasswordChangeRequiredException;
 import org.apache.sshd.server.auth.pubkey.PublickeyAuthenticator;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
+import org.apache.sshd.server.session.ServerSession;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xenei.test.testSSH.command.AbstractCommandFactory;
 import org.xenei.test.testSSH.command.TestCommandFactory;
 import org.xenei.test.testSSH.shell.TestShellFactory;
 
 
 public class SSHTestingEnvironment {
-
-
-
-    private SshServer sshd;
 
     private static final Logger LOG = LoggerFactory.getLogger( SSHTestingEnvironment.class );
     public static final boolean IS_MAC_OSX = System.getProperty( "os.name" ).startsWith( "Mac OS X" );
@@ -39,13 +40,16 @@ public class SSHTestingEnvironment {
     private final TestCommandFactory testCommandFactory;
     private final PasswordAuthenticator pwdAuthenticator;
     private final PublickeyAuthenticator keyAuthenticator;
+    
     private final int port;
     private boolean closeAfterError = false;
+    private SshServer sshd;
+
 
     private static Options getOptions() {
     	Options options = new Options();
-    	options.addRequiredOption( "s", "server-cfg", true, "Server Configuration file");
-    	options.addRequiredOption( "c", "command-cfg", true, "Command configuration file");
+    	options.addRequiredOption( "c", "cfg", true, "Server Configuration file");
+    	options.addOption( "p", "port", true, "Port number (if not set random port is used)");
     	options.addOption( "h", "help", false, "this help");
     	return options;
     }
@@ -105,13 +109,17 @@ public class SSHTestingEnvironment {
         	System.exit(1);
         }
         
+        Integer port = null;
+        if (cmdLine.hasOption("p"))
+        {
+        	port = Integer.valueOf(cmdLine.getOptionValue("p"));
+        }
+        
         Configurations configs = new Configurations();
-        File propertiesFile = new File(cmdLine.getOptionValue( "s" ));
+        File propertiesFile = new File(cmdLine.getOptionValue( "c" ));
         Configuration serverCfg = configs.properties(propertiesFile);
-     
-        		
-        		     
-        final SSHTestingEnvironment env = new SSHTestingEnvironment( serverCfg );
+             		        		    
+        final SSHTestingEnvironment env = port == null? new SSHTestingEnvironment( serverCfg ) : new SSHTestingEnvironment( serverCfg, port );
             
         System.out.println( String.format( "Port: %s", env.getPort() ) );
         env.setupServer();
@@ -145,31 +153,40 @@ public class SSHTestingEnvironment {
      */
     public SSHTestingEnvironment(Configuration serverCfg, final int port) throws ClassNotFoundException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
         this.port = port;
-        Class<?> clazz = Class.forName( serverCfg.getString( "authenticator.class") );
-        Configuration cfg = serverCfg.subset("authenticator.config" );
-        Object authenticator = clazz.getConstructor( Configuration.class ).newInstance( cfg );
-        if (authenticator instanceof UserAuthenticator)
+        if (serverCfg.containsKey("authenticator.class"))
         {
-        	pwdAuthenticator = (UserAuthenticator) authenticator;
-        	keyAuthenticator = null;
+	        Class<?> clazz = Class.forName( serverCfg.getString( "authenticator.class") );
+	        Configuration cfg = serverCfg.subset("authenticator.config" );
+	        Object authenticator = clazz.getConstructor( Configuration.class ).newInstance( cfg );
+	        if (authenticator instanceof UserAuthenticator)
+	        {
+	        	pwdAuthenticator = (UserAuthenticator) authenticator;
+	        	keyAuthenticator = null;
+	        }
+	        else if (authenticator instanceof KeyAuthenticator)
+	        {
+	        	pwdAuthenticator = null;
+	        	keyAuthenticator = (KeyAuthenticator) authenticator;
+	        }
+	        else {
+	        	throw new IllegalArgumentException( String.format("Class %s does not extend UserAuthenticator, or KeyAuthenticator",clazz ));
+	        }
         }
-        else if (authenticator instanceof KeyAuthenticator)
-        {
-        	pwdAuthenticator = null;
-        	keyAuthenticator = (KeyAuthenticator) authenticator;
-        } else {
-        	throw new IllegalArgumentException( "Configuration authenticator entry must be either a UserAuthenticator or KeyAuthenticator instance");
+        else {
+        	LOG.info( "Creating password authenticator that accepts any id/pwd");
+        	pwdAuthenticator = new PasswordAuthenticator() {
+
+				@Override
+				public boolean authenticate(String username, String password, ServerSession session)
+						throws PasswordChangeRequiredException {
+					return true;
+				}};
+			keyAuthenticator = null;
         }
-        
-        clazz = Class.forName( serverCfg.getString( "commandFactory.class") );
-        cfg = serverCfg.subset("commandFactory.config" );
-        testCommandFactory = (TestCommandFactory) clazz.getConstructor( SSHTestingEnvironment.class, Configuration.class ).newInstance( this, cfg );
-
-        clazz = Class.forName( serverCfg.getString( "shellFactory.class") );
-        cfg = serverCfg.subset("shellFactory.config" );
-        testShellFactory = (TestShellFactory) clazz.getConstructor( SSHTestingEnvironment.class, Configuration.class ).newInstance( this, cfg );
-
+        testCommandFactory = new TestCommandFactory( this, serverCfg.subset("commandFactory") );
+        testShellFactory =  new TestShellFactory( testCommandFactory, serverCfg.getString( "prompt", "TS>"));
     }
+    
 
     /**
      * Shut down SSHTestingEnvironment.
@@ -189,16 +206,8 @@ public class SSHTestingEnvironment {
         return port;
     }
 
-//    public UserAuthenticator getUserAuthenticator() {
-//        return userAuthenticator;
-//    }
-//
-//    public KeyAuthenticator getKeyAuthenticator() {
-//        return keyAuthenticator;
-//    }
-
     public TestCommandFactory getCommandFactory() {
-        return getTestCommandFactory();
+        return testCommandFactory;
     }
 
     public void setCloseAfterError(final boolean state) {
@@ -224,7 +233,7 @@ public class SSHTestingEnvironment {
         {
             getSshd().setPublickeyAuthenticator( keyAuthenticator );
         }
-        getSshd().setCommandFactory( getTestCommandFactory() );
+        getSshd().setCommandFactory( testCommandFactory );
         getSshd().setShellFactory( testShellFactory );
         getSshd().start();
     }
@@ -241,7 +250,4 @@ public class SSHTestingEnvironment {
 		return closeAfterError;
 	}
 
-	public TestCommandFactory getTestCommandFactory() {
-		return testCommandFactory;
-	}
 }

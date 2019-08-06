@@ -26,9 +26,9 @@ public abstract class AbstractTestCommand implements Command, Runnable {
     /**
 	 * 
 	 */
-	protected final SSHTestingEnvironment sshTestingEnvironment;
-	protected final boolean closeAfterError;
-    protected final boolean closeAfterCommand;
+	protected final TestCommandFactory testCommandFactory;
+	protected boolean closeAfterError;
+    protected boolean closeAfterCommand;
     protected final String command;
     private InputStream in;
     protected OutputStream out;
@@ -45,14 +45,25 @@ public abstract class AbstractTestCommand implements Command, Runnable {
      *            close after error
      * @param sshTestingEnvironment TODO
      */
-    public AbstractTestCommand(SSHTestingEnvironment sshTestingEnvironment, final String command, final boolean closeAfterCommand, final boolean closeAfterError) {
-        this.sshTestingEnvironment = sshTestingEnvironment;
+    public AbstractTestCommand(TestCommandFactory testCommandFactory, final String command) {
+        this.testCommandFactory = testCommandFactory;
 		this.command = ValidateUtils.checkNotNullAndNotEmpty( command, "No command" );
-        this.closeAfterCommand = closeAfterCommand;
-        this.closeAfterError = closeAfterError;
+        this.closeAfterCommand = false;
+        this.closeAfterError = false;
     }
+    
 
-    public final String getCommand() {
+    public final void setCloseAfterError(boolean closeAfterError) {
+		this.closeAfterError = closeAfterError;
+	}
+
+
+	public final void setCloseAfterCommand(boolean closeAfterCommand) {
+		this.closeAfterCommand = closeAfterCommand;
+	}
+
+
+	public final String getCommand() {
         return command;
     }
 
@@ -75,6 +86,11 @@ public abstract class AbstractTestCommand implements Command, Runnable {
     public void setExitCallback(final ExitCallback callback) {
     }
 
+    /**
+     * Return true if the command succeeded, false if there was an error.
+     * @return true on success.
+     * @throws IOException
+     */
     abstract protected boolean handleCommand() throws IOException;
     
     @Override
@@ -117,7 +133,7 @@ public abstract class AbstractTestCommand implements Command, Runnable {
             LOG.debug( "Executing " + Arrays.toString( cmds ) );
             for (int i = 0; i < cmds.length; i++)
             {
-            	AbstractTestCommand subCommand = sshTestingEnvironment.getCommandFactory().createCommand( cmds[i], ((i + 1) == cmds.length) );
+            	AbstractTestCommand subCommand = testCommandFactory.createCommand( cmds[i], ((i + 1) == cmds.length) );
             	subCommand.setInputStream( in );
                 subCommand.setErrorStream( err );
                 subCommand.setOutputStream( out );
