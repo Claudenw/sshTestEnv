@@ -47,7 +47,8 @@ public abstract class AbstractTestCommand implements Command, Runnable {
      */
     public AbstractTestCommand(TestCommandFactory testCommandFactory, final String command) {
         this.testCommandFactory = testCommandFactory;
-		this.command = ValidateUtils.checkNotNullAndNotEmpty( command, "No command" );
+		//this.command = ValidateUtils.checkNotNullAndNotEmpty( command, "No command" );
+        this.command = command;
         this.closeAfterCommand = false;
         this.closeAfterError = false;
     }

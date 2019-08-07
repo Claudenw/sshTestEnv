@@ -52,11 +52,6 @@ public class TestCommandFactory implements CommandFactory {
 	public AbstractTestCommand createCommand(String command) {
 		return createCommand( command, false );
 	}
-	
-	public AbstractTestCommand createShellCommand(String command) {
-		return createCommand( command, true );
-	}
-	
 
 	public AbstractTestCommand createCommand(String command, boolean closeAfterCommand) {
 		for (AbstractCommandFactory factory : factories)

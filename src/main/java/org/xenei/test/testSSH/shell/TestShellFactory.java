@@ -8,6 +8,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 
+import org.apache.commons.io.output.WriterOutputStream;
 import org.apache.sshd.common.Factory;
 import org.apache.sshd.server.Command;
 import org.apache.sshd.server.Environment;
@@ -109,24 +110,24 @@ public class TestShellFactory implements Factory<Command> {
 	                    super.write( ii );
 
 	                    // workaround for MacOSX!! reset line after CR..
-	                    if (SSHTestingEnvironment.IS_MAC_OSX && (ii == ConsoleReader.CR.toCharArray()[0]))
+	                    if (ii == ConsoleReader.CR.toCharArray()[0])
 	                    {
 	                        super.write( ConsoleReader.RESET_LINE );
 	                    }
 	                }
 	            } );
+	            //reader = new ConsoleReader( in,  out );
 	            reader.setPrompt( prompt );
-	            writer = new PrintWriter( reader.getOutput() );
 
 	            // output welcome banner on ssh session startup
-	            writer.println( ShellCommand.class.getSimpleName() + " testing shell" );
-
-	            writer.flush();
+	            reader.getOutput().write(ShellCommand.class.getSimpleName() + " testing shell");
+	            reader.getOutput().write("\n");
+	            reader.getOutput().flush();	
 
 	            String line;
 	            while ((line = reader.readLine()) != null)
 	            {
-	                out.write( (line + "\n").getBytes( StandardCharsets.UTF_8 ) );
+	                //out.write( (line + "\n").getBytes( StandardCharsets.UTF_8 ) );
 	                handleUserInput( line.trim() );            
 	            }
 	            callback.onExit( 0 );
@@ -141,12 +142,20 @@ public class TestShellFactory implements Factory<Command> {
 	    }
 
 	    private void handleUserInput(final String line) throws InterruptedIOException {
-	        final AbstractTestCommand command = testCommandFactory.createShellCommand( line );       
+	    	final OutputStream myOut = new WriterOutputStream(reader.getOutput(), StandardCharsets.UTF_8);
+	        final AbstractTestCommand command = testCommandFactory.createCommand( line, false );       
 	        command.setErrorStream( err );
-	        command.setOutputStream( out );
-	        command.setInputStream( in );
+	        command.setOutputStream( myOut );
+	        command.setInputStream( reader.getInput() );
 	        command.setExitCallback( callback );
 	        command.run();
+	        try {
+	        	myOut.write( '\r');
+	        	myOut.flush();
+	        }
+	        catch (IOException ignore) {
+	        	LOG.debug( "Error flusing output", ignore );
+	        }
 	    }
 	}
 }
