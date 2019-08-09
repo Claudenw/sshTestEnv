@@ -5,16 +5,14 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.commons.configuration2.Configuration;
 import org.apache.sshd.common.util.ValidateUtils;
-import org.apache.sshd.server.Command;
 import org.apache.sshd.server.CommandFactory;
-import org.apache.sshd.server.scp.UnknownCommand;
 import org.xenei.test.testSSH.SSHTestingEnvironment;
 
 public class TestCommandFactory implements CommandFactory {
@@ -25,14 +23,14 @@ public class TestCommandFactory implements CommandFactory {
 	{
 		factories = new ArrayList<AbstractCommandFactory>();
 		Iterator<String> iter = cfg.getKeys();
-		Set<String> seen = new HashSet<String>();
+		Set<String> seen = new TreeSet<String>();
 		while (iter.hasNext() ) {
-			String key = iter.next().split( "\\.")[0];
-			if ( ! seen.contains(key))
-			{
-				seen.add( key );
-				factories.add( instantiate( sshTestingEnvironment, cfg.subset(key)));
-			}
+			seen.add( iter.next().split( "\\.")[0] );
+		}
+		
+		for (String key : seen )
+		{
+			factories.add( instantiate( sshTestingEnvironment, cfg.subset(key)));
 		}
 	}
 	
