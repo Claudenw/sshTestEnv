@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.apache.commons.configuration2.Configuration;
 import org.apache.sshd.server.Command;
+import org.apache.sshd.server.session.ServerSession;
 import org.xenei.test.testSSH.SSHTestingEnvironment;
 
 public class EchoCommandFactory extends AbstractCommandFactory {
@@ -37,6 +38,11 @@ public class EchoCommandFactory extends AbstractCommandFactory {
 		EchoCommand cmd = new EchoCommand( sshTestingEnvironment.getCommandFactory(), command );
 		cmd.setCloseAfterCommand( closeAfterCommand );
 		return cmd;
+	}
+	
+	@Override
+	public void clearState(ServerSession session) {
+		// do nothing
 	}
 
 	private static class EchoCommand extends AbstractTestCommand implements Command, Runnable {

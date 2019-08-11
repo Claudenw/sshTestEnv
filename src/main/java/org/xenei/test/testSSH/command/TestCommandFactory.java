@@ -13,6 +13,7 @@ import java.util.TreeSet;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.sshd.common.util.ValidateUtils;
 import org.apache.sshd.server.CommandFactory;
+import org.apache.sshd.server.session.ServerSession;
 import org.xenei.test.testSSH.SSHTestingEnvironment;
 
 public class TestCommandFactory implements CommandFactory {
@@ -45,6 +46,9 @@ public class TestCommandFactory implements CommandFactory {
 		throw new IllegalArgumentException(String.format("%s is not an instance of %s", clazz, AbstractCommandFactory.class));
 	}
 	
+	public void clearState(ServerSession session) {
+		factories.stream().forEach( f -> f.clearState(session) );
+	}
 	
 	@Override
 	public AbstractTestCommand createCommand(String command) {

@@ -2,20 +2,26 @@ package org.xenei.test.testSSH.command;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.sshd.server.Command;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.sshd.server.session.ServerSession;
+import org.xenei.test.testSSH.PromptHandler;
 import org.xenei.test.testSSH.SSHTestingEnvironment;
 
 public class HelpParserCommandFactory extends AbstractCommandFactory {
 
 	private Configuration config;
+	
+	@Override
+	public void clearState(ServerSession session) {
+		session.getProperties().remove(HelpCommand.class.getName());
+	}
 	
 	public HelpParserCommandFactory(SSHTestingEnvironment sshTestingEnvironment, Configuration config) {
 		super(sshTestingEnvironment);
@@ -63,23 +69,53 @@ public class HelpParserCommandFactory extends AbstractCommandFactory {
 			out.write( '\n');		
 		}
 
-	    protected boolean handleCommand() throws IOException {
+		private String getKey( ) {
+			// the command prefix is stored in the context.
+	    	Map<String,Object> context = getContext();	    	
+	    	String pfx = StringUtils.defaultString((String)context.get("commandPrefix"));
+	    	if (command.length() > 0)
+	    	{
+		    	if (pfx.length()>0) {
+		    		pfx = String.format( "%s %s",  pfx, command);
+		    	}
+		    	else {
+		    		pfx = command;
+		    	}
+	    	}
+    		context.put( "commandPrefix", pfx );
+    		
+    		PromptHandler handler = new PromptHandler( session );
+    		if (pfx.length() > 0)
+    		{
+    			handler.setText( pfx+" " );
+    			return "tree."+pfx.replace( ' ', '.' );
+    		}
+    		
+	    	return "tree";
+	    	
+		}
+		
+		
+	    @Override
+		protected boolean handleCommand() throws IOException {
 	    	if (command == null) {
 	    		return false;
 	    	}
-	    	Configuration cfg = config.subset( command.length()>0?"tree."+command:"tree");
+	    	
+	    	String key = getKey();
+	    	Configuration cfg = config.subset( key );
 	    	Iterator<String> iter = cfg.getKeys();
 	    	if (iter.hasNext()) {
 		    	Set<String> subCmds = new HashSet<String>();
 				while (iter.hasNext()) {
-					String key = iter.next().split("\\.")[0];
-					if (key.length() > 0 && subCmds.add(key)) {
-						String txt = cfg.getString( key );
+					String innerKey = iter.next().split("\\.")[0];
+					if (innerKey.length() > 0 && subCmds.add(innerKey)) {
+						String txt = cfg.getString( innerKey );
 						if (txt == null)
 						{
-							out.write( String.format( "%s\n", key ).getBytes( StandardCharsets.UTF_8 ) );
+							out.write( String.format( "%s\n", innerKey ).getBytes( StandardCharsets.UTF_8 ) );
 						} else {
-							out.write( String.format( "%s\t%s\n", key, txt ).getBytes( StandardCharsets.UTF_8 ) );
+							out.write( String.format( "%s\t%s\n", innerKey, txt ).getBytes( StandardCharsets.UTF_8 ) );
 						}
 					}
 					if (subCmds.isEmpty())

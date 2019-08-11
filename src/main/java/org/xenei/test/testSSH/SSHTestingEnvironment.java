@@ -3,7 +3,6 @@ package org.xenei.test.testSSH;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.security.Security;
 
@@ -11,7 +10,6 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.configuration2.Configuration;
@@ -26,7 +24,6 @@ import org.apache.sshd.server.session.ServerSession;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xenei.test.testSSH.command.AbstractCommandFactory;
 import org.xenei.test.testSSH.command.TestCommandFactory;
 import org.xenei.test.testSSH.shell.TestShellFactory;
 

@@ -2,14 +2,9 @@ package org.xenei.test.testSSH.command;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
-
 import org.apache.commons.configuration2.Configuration;
 import org.apache.sshd.server.Command;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.sshd.server.session.ServerSession;
 import org.xenei.test.testSSH.SSHTestingEnvironment;
 
 public class StaticCommandFactory extends AbstractCommandFactory {
@@ -33,6 +28,11 @@ public class StaticCommandFactory extends AbstractCommandFactory {
 		return cmd;
 	}
 
+	@Override
+	public void clearState(ServerSession session) {
+		// do nothing
+	}
+	
 	private class StaticCommand extends AbstractTestCommand implements Command, Runnable {	
 
 	    /**
@@ -50,7 +50,8 @@ public class StaticCommandFactory extends AbstractCommandFactory {
 	    	super( testCommandFactory, command );        
 	    }
 
-	    protected boolean handleCommand() throws IOException {
+	    @Override
+		protected boolean handleCommand() throws IOException {
 	        
 	        out.write( config.getString(command).getBytes( StandardCharsets.UTF_8 ) );
 	        out.write( '\n' );

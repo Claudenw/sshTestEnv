@@ -1,14 +1,9 @@
 package org.xenei.test.testSSH.command;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.configuration2.Configuration;
-import org.apache.sshd.server.CommandFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.sshd.server.session.ServerSession;
 import org.xenei.test.testSSH.SSHTestingEnvironment;
 
 public abstract class AbstractCommandFactory  {
@@ -41,6 +36,10 @@ public abstract class AbstractCommandFactory  {
 	 */
 	public abstract AbstractTestCommand createCommand(final String command, boolean closeAfterCommand);
 
+	/**
+	 * Clear any state held by this factory.
+	 */
+	public abstract void clearState(ServerSession session);
 	
 	/**
 	 * Get the list of executed commands.

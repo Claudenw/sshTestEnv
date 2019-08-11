@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.apache.commons.configuration2.Configuration;
 import org.apache.sshd.server.CommandFactory;
+import org.apache.sshd.server.session.ServerSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xenei.test.testSSH.SSHTestingEnvironment;
@@ -45,6 +46,7 @@ public class ConfigCommandFactory extends AbstractCommandFactory implements Comm
 		throw new IllegalArgumentException(String.format("%s is not an instance of %s", clazz, AbstractTestCommand.class));
 	}
 	
+	@Override
 	public boolean handles( String command )
 	{
 		return ! cfg.subset(command).isEmpty();
@@ -55,6 +57,7 @@ public class ConfigCommandFactory extends AbstractCommandFactory implements Comm
 		return createCommand(command, true);
 	}
 
+	@Override
 	public AbstractTestCommand createCommand(final String command, boolean closeAfterCommand) {
 		LOG.debug("Creating command: " + command);
 		Configuration cmdCfg = cfg.subset(command);
@@ -87,6 +90,7 @@ public class ConfigCommandFactory extends AbstractCommandFactory implements Comm
 	 * Get the list of executed commands.
 	 * @return
 	 */
+	@Override
 	public List<String> getExecutedCommands() {
 		return executedCommands;
 	}
@@ -94,7 +98,13 @@ public class ConfigCommandFactory extends AbstractCommandFactory implements Comm
 	/**
 	 * Clear the list of executed commands.
 	 */
+	@Override
 	public void clearExecutedCommands() {
 		executedCommands.clear();
+	}
+
+	@Override
+	public void clearState(ServerSession session) {
+		// do nothing
 	}
 }
