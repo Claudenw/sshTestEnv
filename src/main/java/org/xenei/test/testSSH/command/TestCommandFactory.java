@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.Stack;
 import java.util.TreeSet;
 
 import org.apache.commons.configuration2.Configuration;
@@ -19,10 +20,13 @@ import org.xenei.test.testSSH.SSHTestingEnvironment;
 public class TestCommandFactory implements CommandFactory {
 	
 	private List<AbstractCommandFactory> factories;
+	
+	private Stack<AbstractCommandFactory> factoryStack;
 
 	public TestCommandFactory(SSHTestingEnvironment sshTestingEnvironment, Configuration cfg) throws ClassNotFoundException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException
 	{
 		factories = new ArrayList<AbstractCommandFactory>();
+		factoryStack = new Stack<AbstractCommandFactory>();
 		Iterator<String> iter = cfg.getKeys();
 		Set<String> seen = new TreeSet<String>();
 		while (iter.hasNext() ) {
@@ -33,6 +37,11 @@ public class TestCommandFactory implements CommandFactory {
 		{
 			factories.add( instantiate( sshTestingEnvironment, cfg.subset(key)));
 		}
+	}
+	
+	public void push(AbstractCommandFactory factory)
+	{
+		factoryStack.push( factory );
 	}
 	
 	private static AbstractCommandFactory instantiate(SSHTestingEnvironment sshTestingEnvironment, Configuration cfg)
@@ -48,6 +57,7 @@ public class TestCommandFactory implements CommandFactory {
 	
 	public void clearState(ServerSession session) {
 		factories.stream().forEach( f -> f.clearState(session) );
+		factoryStack.clear();
 	}
 	
 	@Override
@@ -56,6 +66,10 @@ public class TestCommandFactory implements CommandFactory {
 	}
 
 	public AbstractTestCommand createCommand(String command, boolean closeAfterCommand) {
+		if (!factoryStack.isEmpty())
+		{
+			return factoryStack.pop().createCommand(command, closeAfterCommand);
+		}
 		for (AbstractCommandFactory factory : factories)
 		{
 			if (factory.handles( command ))
@@ -69,7 +83,7 @@ public class TestCommandFactory implements CommandFactory {
 			@Override
 			protected boolean handleCommand() throws IOException {
 				String cmd = ValidateUtils.checkNotNullAndNotEmpty(command, "No command");
-		        String errorMessage = "Unknown command: " + cmd;
+		        String errorMessage = String.format("Unknown command: [%s]", cmd );
 				ValidateUtils.checkNotNull(err, "No error stream");
 		        try {
 		            err.write(errorMessage.getBytes(StandardCharsets.UTF_8));

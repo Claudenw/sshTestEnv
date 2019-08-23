@@ -181,6 +181,7 @@ public class TestShellFactory implements Factory<Command> {
 			command.setOutputStream(myOut);
 			command.setInputStream(reader.getInput());
 			command.setExitCallback(callback);
+			command.setReader( reader );
 			command.run();
 			try {
 				myOut.write('\r');

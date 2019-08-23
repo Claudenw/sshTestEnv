@@ -18,6 +18,8 @@ import org.apache.sshd.server.session.ServerSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jline.console.ConsoleReader;
+
 public abstract class AbstractTestCommand implements Command, Runnable, SessionAware {
 	
 	private static final Logger LOG = LoggerFactory.getLogger( AbstractTestCommand.class );
@@ -33,6 +35,11 @@ public abstract class AbstractTestCommand implements Command, Runnable, SessionA
     protected OutputStream out;
     protected OutputStream err;
     protected ServerSession session;
+    /**
+     * A ConsoleReader is only provided if the environment is a shell environment
+     * otherwise this will be null.
+     */
+    protected ConsoleReader reader;
 
     /**
      * Test Command.
@@ -53,6 +60,10 @@ public abstract class AbstractTestCommand implements Command, Runnable, SessionA
         this.closeAfterError = false;
     }
     
+    public void setReader( ConsoleReader reader )
+    {
+    	this.reader = reader;
+    }
 
     @Override
 	public void setSession(ServerSession session) {
