@@ -111,3 +111,9 @@ the command "root one two ?" will return
     <CR>
 
 note the "<CR>" is the literal "<CR>" specified in the empty_list property noted above
+ 
+# Running
+
+To run the system run `mvn clean package` and then execute `run.sh [configuration file]`  This will execute the program.
+The build places all necessary jars in the target directory so they may be copied from there if desired.
+
